@@ -37,7 +37,7 @@ def generate_key(client, ec2, employee_name):
 
     os.system('mkdir -p ' + dirpath + ' && touch ' + filepath + ' && chmod 600 ' + filepath)
     f = open(filepath, 'w+')
-    f.write(key_pair.key_material)
+    f.write(str(key_pair.key_material))
     f.close()
 
     return filepath
@@ -66,6 +66,7 @@ def create_instance(ec2, employee_name, subnet_id):
 
 
 def create_security_group(client, ec2, instance, employee_name, vpc_id):
+    security_group_id=0
     for group in client.describe_security_groups()['SecurityGroups']:
         if group['GroupName'] == employee_name:
             if employee_name == group['GroupName']:
@@ -132,14 +133,19 @@ def prepare_instance(instance, filepath):
         'sudo /sbin/parted /dev/xvdf mkpart primary 0% 100% --script',
         'sudo mkfs.ext4 /dev/xvdf1',
         'sudo apt update',
-        'sudo apt install -y python3-pip git',
-        'pip3 install flask',
+        'sudo apt install -y python3-pip git nginx',
+        'pip3 install flask boto3',
         'sudo mkdir ~/website',
+        'sudo mount /dev/xvdf1 ~/website',
         'cd ~/website',
-        'sudo mount /dev/xvdf1 ./'#,
-       # 'git clone $GITADDRESS',
-       # 'export FLASK_APP=$SCRIPTNAMD'
-       # 'flask run -p 80'
+	'sudo chown -R ubuntu ./',
+        'git clone https://github.com/valkevichnv/ec2_test.git',	
+	'sudo rm /etc/nginx/sites-available/default',
+        'sudo rm /etc/nginx/sites-enabled/default',
+        'echo -ne "server { \n\tlisten 80; \n\tlocation / { \n\t\tproxy_pass http://127.0.0.1:5000; \n\t} \n}" | sudo tee /etc/nginx/sites-enabled/default',
+        'export FLASK_APP=~/website/ec2_test/ec2_test.py',
+	'sudo service nginx start',
+        'flask run' 
     ]
 
     auth_key = paramiko.RSAKey.from_private_key_file(filepath)
@@ -189,5 +195,6 @@ def secret_page():
     usages = os.popen("ps axu | grep flask | grep Python | awk '{print $3, $4}'").read().split()
     cpu_usage = usages[0]
     mem_usage = usages[1]
+    latest_commit = os.popen("git rev-parse --short HEAD")
 
-    return str(mem_usage) + '\n' + str(cpu_usage)
+    return 'Latest commit: ' + latest_commit + '\nMem usage: ' + str(mem_usage) + '% \n' + 'Cpu usage: ' + str(cpu_usage) + '% \n'
