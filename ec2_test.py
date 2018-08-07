@@ -143,8 +143,10 @@ def prepare_instance(instance, filepath):
         'sudo rm /etc/nginx/sites-enabled/default',
         'echo -ne "server { \n\tlisten 80; \n\tlocation / { \n\t\tproxy_pass http://127.0.0.1:5000; \n\t} \n}" | sudo tee /etc/nginx/sites-enabled/default',
         'export FLASK_APP=~/website/ec2_test/ec2_test.py',
+        'export FLASK_DEBUG=1',
+	'echo "* * * * * cd /home/ubuntu/website/ec2_test && git pull" | sudo tee /var/spool/cron/crontabs/ubuntu',
 	'sudo service nginx start',
-        'flask run' 
+        'flask run &' 
     ]
 
     auth_key = paramiko.RSAKey.from_private_key_file(filepath)
@@ -164,7 +166,9 @@ def authenticate():
         'Wrong credentials.\n', 401,
         {'WWW-Authenticate': 'Basic realm="Login Required"'})
 
-flask_path = os.popen("which flask").read()
+flask_path = os.popen("which flask").read()[:-1]
+
+print (flask_path + " | " +sys.argv[0])
 if sys.argv[0] != flask_path:
     deploy_instance()
 
@@ -196,4 +200,4 @@ def secret_page():
     mem_usage = usages[1]
     latest_commit = os.popen("git rev-parse --short HEAD").read()
 
-    return 'Latest commit: ' + latest_commit + '\nMem usage: ' + str(mem_usage) + '% \n' + 'Cpu usage: ' + str(cpu_usage) + '% \n'
+    return 'Latest commit: ' + latest_commit + 'Mem usage: ' + str(mem_usage) + '% \n' + 'Cpu usage: ' + str(cpu_usage) + '% \n'
