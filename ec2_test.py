@@ -1,4 +1,3 @@
-
 import os
 import sys
 
@@ -165,8 +164,8 @@ def authenticate():
         'Wrong credentials.\n', 401,
         {'WWW-Authenticate': 'Basic realm="Login Required"'})
 
-
-if sys.argv[0] != '/usr/local/bin/flask':
+flask_path = os.popen("which flask").read()
+if sys.argv[0] != flask_path:
     deploy_instance()
 
 from functools import wraps
@@ -195,6 +194,6 @@ def secret_page():
     usages = os.popen("ps axu | grep flask | grep Python | awk '{print $3, $4}'").read().split()
     cpu_usage = usages[0]
     mem_usage = usages[1]
-    latest_commit = os.popen("git rev-parse --short HEAD")
+    latest_commit = os.popen("git rev-parse --short HEAD").read()
 
     return 'Latest commit: ' + latest_commit + '\nMem usage: ' + str(mem_usage) + '% \n' + 'Cpu usage: ' + str(cpu_usage) + '% \n'
